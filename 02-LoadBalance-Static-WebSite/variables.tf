@@ -39,4 +39,6 @@ locals {
   instance_type   = "t2.micro"
   env             = "testing"
   ingress_ports   = [80, 22]
+  bucket_name     = "loadbalance-staticwebsite-0394902"
+  bucket_prefix   = "LB-Logs"
 }

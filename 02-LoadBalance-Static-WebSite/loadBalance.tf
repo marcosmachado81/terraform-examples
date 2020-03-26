@@ -2,7 +2,7 @@
 data "aws_elb_service_account" "main" {}
 
 resource "aws_s3_bucket" "log_bucket" {
-  bucket = "loadbalance-staticwebsite-0394902"
+  bucket = local.bucket_name
   #acl
   policy        = <<POLICY
 {
@@ -14,7 +14,7 @@ resource "aws_s3_bucket" "log_bucket" {
         "s3:PutObject"
       ],
       "Effect": "Allow",
-      "Resource": "arn:aws:s3:::loadbalance-staticwebsite-0394902/LB-Logs/AWSLogs/*",
+      "Resource": "arn:aws:s3:::${local.bucket_name}/${local.bucket_prefix}/AWSLogs/*",
       "Principal": {
         "AWS": [
           	"${data.aws_elb_service_account.main.arn}"
@@ -59,7 +59,7 @@ resource "aws_lb" "ALB-WebSite" {
 
   access_logs {
     bucket  = aws_s3_bucket.log_bucket.id
-    prefix  = "LB-Logs"
+    prefix  = local.bucket_prefix
     enabled = true
   }
 
