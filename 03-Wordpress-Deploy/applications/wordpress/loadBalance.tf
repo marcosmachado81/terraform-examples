@@ -2,7 +2,7 @@
 data "aws_elb_service_account" "main" {}
 
 resource "aws_s3_bucket" "log_bucket" {
-  bucket = var.bucket_name
+  bucket = var.load_balance_bucket_name
   #acl
   policy        = <<POLICY
 {
@@ -14,7 +14,7 @@ resource "aws_s3_bucket" "log_bucket" {
         "s3:PutObject"
       ],
       "Effect": "Allow",
-      "Resource": "arn:aws:s3:::${var.bucket_name}/${var.bucket_prefix}/AWSLogs/*",
+      "Resource": "arn:aws:s3:::${var.load_balance_bucket_name}/${var.bucket_prefix}/AWSLogs/*",
       "Principal": {
         "AWS": [
           	"${data.aws_elb_service_account.main.arn}"
@@ -26,7 +26,7 @@ resource "aws_s3_bucket" "log_bucket" {
 POLICY
   force_destroy = true
   tags = {
-    Name        = var.bucket_name
+    Name        = var.load_balance_bucket_name
     Environment = var.environment
     Team        = var.team
     CostCenter  =  var.costCenter
@@ -51,10 +51,6 @@ resource "aws_lb" "ALB-Wordpress" {
   load_balancer_type = "application"
   security_groups    = [ aws_security_group.SG-Wordpress.id ]
   enable_cross_zone_load_balancing = true
-  /*subnets            = [
-    for snet in subnet_public_ids:
-      snet.id
-  ]*/
   subnets         = var.subnet_public_ids
   enable_deletion_protection = false
 
@@ -107,6 +103,7 @@ resource "aws_lb_listener" "LBL-WebSite" {
 
 }
 #use only without autoscaling
+/*
 resource "aws_lb_target_group_attachment" "front_end" {
   count             = length(aws_instance.WordpressInstance)
   target_group_arn  = aws_lb_target_group.TargetGroup-Wordpress.arn
@@ -114,3 +111,4 @@ resource "aws_lb_target_group_attachment" "front_end" {
   port              = 80
     depends_on      = [aws_instance.WordpressInstance]
 }
+*/

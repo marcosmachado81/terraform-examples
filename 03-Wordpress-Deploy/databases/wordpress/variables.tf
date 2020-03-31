@@ -10,7 +10,7 @@ variable "all_subnet_cidr_blocks" {}
 variable "dbname" {}
 variable "dbuser" {}
 variable "dbpassword" {}
-variable "wordpress_address" {}
+#variable "wordpress_address" {}
 
 variable "engine" {}
 variable "engine_version" {}

@@ -9,21 +9,21 @@ locals {
   }
 
   subnet_public_ids_list = {
-    "default" =     module.network.subnet_public_testing_ids
+    "default"    =  module.network.subnet_public_testing_ids
     "production" =  module.network.subnet_public_ids
-    "testing" =     module.network.subnet_public_testing_ids
+    "testing"    =  module.network.subnet_public_testing_ids
   }
 
   subnet_private_ids_list = {
-    "default" =     module.network.subnet_private_testing_ids
+    "default"    =  module.network.subnet_private_testing_ids
     "production" =  module.network.subnet_private_ids
-    "testing" =     module.network.subnet_private_testing_ids
+    "testing"    =  module.network.subnet_private_testing_ids
   }
 
   all_subnet_cidr_blocks_list = {
-    "testing" = concat(module.network.subnet_public_testing_cidr_blocks,module.network.subnet_private_testing_cidr_blocks)
+    "testing"    = concat(module.network.subnet_public_testing_cidr_blocks,module.network.subnet_private_testing_cidr_blocks)
     "production" = concat(module.network.subnet_public_cidr_blocks,module.network.subnet_private_cidr_blocks)
-    "default" = concat(module.network.subnet_public_testing_cidr_blocks,module.network.subnet_private_testing_cidr_blocks)
+    "default"    = concat(module.network.subnet_public_testing_cidr_blocks,module.network.subnet_private_testing_cidr_blocks)
   }
 
   instance_type_list = {
@@ -54,7 +54,8 @@ locals {
   all_subnet_cidr_blocks  = lookup(local.all_subnet_cidr_blocks_list,local.environment)
   subnet_public_ids       = lookup(local.subnet_public_ids_list,local.environment)
   storage_size            = lookup(local.storage_size_list,local.environment)
-  db_instance_class        = lookup(local.db_instance_class_list,local.environment)
+  db_instance_class       = lookup(local.db_instance_class_list,local.environment)
+  region                  = "eu-west-3"
 
 }
 
@@ -90,7 +91,7 @@ module "wordpress_database" {
   dbname                  = local.dbname
   dbuser                  = local.dbuser
   dbpassword              = local.dbpassword
-  wordpress_address       =module.wordpress.wordpress_alb
+  #wordpress_address       = module.wordpress.wordpress_alb
 
   engine                 = "mysql"
   engine_version         = "5.7.22"
@@ -106,10 +107,16 @@ module "wordpress" {
   team                  = "Dev"
   costCenter            = "HR"
 
+  region                = local.region
+
   #Application variables
   vpc_id            = local.vpc_id
   subnet_public_ids = local.subnet_public_ids
-  ingress_ports     = [80,22]
+  ingress_ports     = [80,22,2049]
+  #One instance is create by aws_instance just to configure the wordpress environment.
+  #this instance will install and copy files to S3 and EFS mounts.
+  #After that the instance will shutdown and terminate.
+  #To increase the number of instances in alb use auto scale variables
   total_instances   = 1
   ami_id            = module.core.ami_default.id
   instance_type     = local.instance_type
@@ -121,15 +128,37 @@ module "wordpress" {
   dbpassword       = local.dbpassword
   dbhost           = module.wordpress_database.db_address
 
+  wp_content_bucket_name   = "my-wordpress-uploads-10294"
+  wordpress_wp_content     = "/var/www/wp-uploads"
 
+  #wordpress user,password,admin e-mail and locale
   wp_user_admin     = "admin"
   wp_user_password  = "75622e9c6b10dee650fc5e8a9cae89b1"
   wp_user_mail      = "teste@teste.gor"
   wp_locale         = "pt_BR"
 
-  #loadBalance Variables
-  bucket_name       = "loadbalance-staticwebsite-0394902"
-  bucket_prefix     = "LB-Logs"
-  health_path       = "/health.html"
+  #loadBalance variables
+  load_balance_bucket_name = "loadbalance-staticwebsite-0394902"
+  bucket_prefix            = "LB-Logs"
+  health_path              = "/health.html"
+
+  #Auto Scaling variables
+  auto_scaling_min_size         = 1
+  auto_scaling_desired_capacity = 1
+  auto_scaling_max_size         = 2
+  auto_scale_cooldown           = 60
+  auto_scale_capacityUP         = 1
+  auto_scale_capacityDOWN       = -1
+  #Auto Scaling metrics
+  #for scale out up
+  as_metric_up_evaluation_periods = "1"
+  as_metric_up_period             =  "60"
+  as_metric_up_threshold          = "50"
+
+  #scale out down
+  as_metric_down_evaluation_periods = "1"
+  as_metric_down_period             = "60"
+  as_metric_down_threshold          = "50"
+
 
 }

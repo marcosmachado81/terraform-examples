@@ -23,8 +23,29 @@ variable "vpc_id" {}
 variable "ingress_ports" {}
 
 
+variable "wp_content_bucket_name" {}
+variable "wordpress_wp_content" {}
+
 #variables for loadBalance.tf
-variable "bucket_name" {}
+variable "load_balance_bucket_name" {}
 variable "bucket_prefix" {}
 variable "health_path" {}
 variable "wp_locale" {}
+variable "region" {}
+
+#AutoScaling variables
+variable "auto_scaling_min_size" {}
+variable "auto_scaling_desired_capacity" {}
+variable "auto_scaling_max_size" {}
+variable "auto_scale_cooldown" {}
+variable "auto_scale_capacityUP" {}
+variable "auto_scale_capacityDOWN" {}
+
+#AS metrics
+variable "as_metric_up_evaluation_periods" {}
+variable "as_metric_up_period" {}
+variable "as_metric_up_threshold" {}
+
+variable "as_metric_down_evaluation_periods" {}
+variable "as_metric_down_period" {}
+variable "as_metric_down_threshold" {}

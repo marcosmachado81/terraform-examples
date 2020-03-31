@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#install dependences and requirements
+sudo yum update -y
+sudo yum install httpd -y
+sudo yum install -y amazon-efs-utils
+sudo amazon-linux-extras install -y php7.2
+sudo yum install fuse -y
+
+#Start services
+sudo systemctl start httpd
+sudo systemctl enable httpd
+
+#create wp-content linked to S3 bucket
+sudo mkdir ${MOUNTPOINT}
+sudo mkdir /root/.aws
+sudo sh -c 'echo "[default]" > /root/.aws/credentials'
+sudo sh -c 'echo "aws_access_key_id = ${ACCSKEY}" >> /root/.aws/credentials'
+sudo sh -c 'echo "aws_access_key_id = ${SECRETACCSKEY}" >> /root/.aws/credentials'
+
+sudo wget https://github.com/kahing/goofys/releases/download/${GOOFYSv}/goofys -O /bin/goofys
+sudo chmod +x /bin/goofys
+sudo sh -c 'echo "goofys#${BUCKETADDRESS}   ${MOUNTPOINT}        fuse     _netdev,allow_other,--file-mode=0666,--dir-mode=0777    0       0" >> /etc/fstab'
+sudo mount ${MOUNTPOINT}
+
+#create EFS mount point
+#sudo mount -t efs ${EFSID}:/ /efs -o
+sudo sh -c 'echo "${EFSID}:/ /var/www/html efs defaults,_netdev 0 0" >> /etc/fstab'
+sudo mount /var/www/html
+
+#Set permissions
+sudo chown -R apache /var/www/
+sudo chgrp -R apache /var/www/

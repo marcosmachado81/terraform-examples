@@ -3,6 +3,7 @@ data "aws_availability_zones" "available" {}
 
 resource "aws_vpc" "principal" {
   cidr_block = var.vpc_cidr_block
+  enable_dns_hostnames = true
   tags       = {
     Name="Main-VPC"
     Module  = var.moduleIdentification
@@ -13,6 +14,7 @@ resource "aws_vpc" "principal" {
 #Create Testing VPC environment
 resource "aws_vpc" "testing" {
   cidr_block = var.vpc_cidr_block_testing
+  enable_dns_hostnames = true
   tags       = {
     Name="Testing-VPC"
     Module  = var.moduleIdentification

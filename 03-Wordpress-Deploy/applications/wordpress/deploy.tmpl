@@ -1,18 +1,65 @@
 #!/usr/bin/env bash
+#install dependences and requirements
 sudo yum update -y
 sudo yum install httpd -y
 sudo yum install mariadb -y
+yum install -y amazon-efs-utils
 sudo amazon-linux-extras install -y php7.2
+yum install fuse -y
+
+#create EFS mount point
+#sudo mount -t efs ${EFSID}:/ /efs -o allow_other
+sudo sh -c 'echo "${EFSID}:/ /var/www/html efs defaults,_netdev 0 0" >> /etc/fstab'
+sudo mount /var/www/html
+
+#Start services
+sudo systemctl start httpd
+sudo systemctl enable httpd
+
+#Install wordpress
 sudo sed '/DirectoryIndex index.html/ c DirectoryIndex index.php index.html' /etc/httpd/conf/httpd.conf > /tmp/httpd.conf
 sudo sed -e '/AllowOverride None/{x;s/^/X/;/^XX$/!{x;b};x;c AllowOverride All' -e '}' /tmp/httpd.conf > /etc/httpd/conf/httpd.conf
 sudo curl https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
 sudo mv /tmp/wp-cli.phar /bin/wp && sudo chmod +x /bin/wp
-sudo systemctl start httpd
-sudo systemctl enable httpd
+
 sudo wp core download --locale=${LOCALE} --path=/var/www/html/
 sudo wp config create --dbhost=${DBHOST} --dbname=${DBNAME} --dbuser=${DBUSER} --dbpass=${DBPASS} --path=/var/www/html > /tmp/command.log 2> /tmp/error.log
+#sudo wp core install --url=${URL} --title="WP-TestTerraform" --admin_user=${ADMUSER} --admin_password=${ADMPASS} --admin_email=${ADMMAIL} --path=/var/www/html
 sudo wp core install --url=${URL} --title="WP-TestTerraform" --admin_user=${ADMUSER} --admin_password=${ADMPASS} --admin_email=${ADMMAIL} --path=/var/www/html
-sudo sh -c "echo '${servername}' > /var/www/html/health.html"
-sudo yum remove mariadb -y
-sudo chown -R apache /var/www/html
-sudo chgrp -R apache /var/www/html
+
+sudo sh -c "echo '<html><head></head><body>ok</body></html>' > /var/www/html/health.html"
+
+sudo sh -c 'echo "<?php" > /var/www/html/server.php'
+sudo sh -c 'echo "        \$ch = curl_init();" >> /var/www/html/server.php'
+sudo sh -c 'echo "        curl_setopt(\$ch, CURLOPT_URL, \"http://ipecho.net/plain\");" >> /var/www/html/server.php'
+sudo sh -c 'echo "        curl_setopt(\$ch, CURLOPT_RETURNTRANSFER, 1);" >> /var/www/html/server.php'
+sudo sh -c 'echo "        \$output = curl_exec(\$ch);" >> /var/www/html/server.php'
+sudo sh -c 'echo "        curl_close(\$ch);" >> /var/www/html/server.php'
+sudo sh -c 'echo "        echo \$output;" >> /var/www/html/server.php'
+sudo sh -c 'echo "?>" >> /var/www/html/server.php'
+
+sudo rm -f /var/www/html/wp-config-sample.php
+
+#create wp-content linked to S3 bucket
+sudo mkdir ${MOUNTPOINT}
+sudo mkdir /root/.aws
+sudo sh -c 'echo "[default]" > /root/.aws/credentials'
+sudo sh -c 'echo "aws_access_key_id = ${ACCSKEY}" >> /root/.aws/credentials'
+sudo sh -c 'echo "aws_access_key_id = ${SECRETACCSKEY}" >> /root/.aws/credentials'
+
+sudo wget https://github.com/kahing/goofys/releases/download/${GOOFYSv}/goofys -O /bin/goofys
+sudo chmod +x /bin/goofys
+sudo sh -c 'echo "goofys#${BUCKETADDRESS}   ${MOUNTPOINT}        fuse     _netdev,allow_other,--file-mode=0666,--dir-mode=0777    0       0" >> /etc/fstab'
+sudo mount ${MOUNTPOINT}
+
+#link wp-content to bucket mount point
+sudo mv /var/www/html/wp-content/uploads/* ${MOUNTPOINT}/
+sudo rm -rf /var/wwww/html/wp-content/uploads
+sudo ln -s  ${MOUNTPOINT} /var/www/html/wp-content/uploads
+
+#Set permissions
+sudo chown -R apache /var/www/
+sudo chgrp -R apache /var/www/
+
+#shutdown after 10min (will terminate the instance)
+sudo shutdown -t 600
