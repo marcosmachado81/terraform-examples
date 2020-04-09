@@ -7,7 +7,7 @@ resource "aws_instance" "WordpressInstance" {
   subnet_id                   = var.subnet_public_ids[count.index % length(var.subnet_public_ids)]
   vpc_security_group_ids      = [ aws_security_group.SG-Wordpress.id ]
   instance_initiated_shutdown_behavior = "terminate"
-  user_data                   =  templatefile("${path.module}/deploy.tmpl", {
+  user_data                   =  templatefile("${path.module}/WPDeploy.tmpl", {
                                                 DBNAME=var.dbname,
                                                 DBUSER=var.dbuser,
                                                 DBPASS=var.dbpassword,
@@ -18,8 +18,8 @@ resource "aws_instance" "WordpressInstance" {
                                                 ADMPASS=var.wp_user_password,
                                                 ADMMAIL=var.wp_user_mail,
                                                 BUCKETADDRESS=var.wp_content_bucket_name,
-                                                SECRETACCSKEY=var.s3_secret_access_key,
-                                                ACCSKEY=var.s3_access_key,
+                                                SECRETACCSKEY= aws_iam_access_key.user_s3.secret, //var.s3_secret_access_key,
+                                                ACCSKEY= aws_iam_access_key.user_s3.id, //var.s3_access_key,
                                                 MOUNTPOINT= var.wordpress_wp_content,
                                                 GOOFYSv = "v0.23.1",
                                                 EFSID=aws_efs_file_system.wordpress_code.id
@@ -72,37 +72,7 @@ JSON
   depends_on = [aws_instance.WordpressInstance]
 }
 
-resource "aws_security_group" "SG-Wordpress" {
-  name        = "application_wordpress_group"
-  description = "Allow inbound traffic for Wordpress ${var.environment} environment"
-  vpc_id      = var.vpc_id
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  dynamic "ingress" {
-    iterator = port
-    for_each = var.ingress_ports
-    content {
-      from_port   = port.value
-      to_port     = port.value
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-
-  tags = {
-    Name         = "application_wordpress_group"
-    Environment  = var.environment
-    Team         = var.team
-    CostCenter   =  var.costCenter
-  }
-
-}
 
 #S3 Storage to use in wp-content
 resource "aws_s3_bucket" "wp_content_bucket" {
@@ -132,7 +102,7 @@ resource "aws_efs_mount_target" "efs" {
   count = length(var.subnet_public_ids)
   file_system_id  = aws_efs_file_system.wordpress_code.id
   subnet_id       = var.subnet_public_ids[count.index]
-  security_groups = [ aws_security_group.SG-Wordpress.id ]
+  security_groups = [ aws_security_group.SG-EFS.id ]
 }
 /*
 resource "aws_s3_bucket_public_access_block" "example" {

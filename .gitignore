@@ -5,4 +5,3 @@
 terraform.*
 .DS_Store
 credential.tf
-s3_access_credential.tf

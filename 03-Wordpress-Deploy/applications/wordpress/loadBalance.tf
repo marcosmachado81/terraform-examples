@@ -44,12 +44,14 @@ POLICY
 }
 
 
+
+
 ##LOAD BALANCE CONFIGURATION
 resource "aws_lb" "ALB-Wordpress" {
   name               = "ALB-Wordpress"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [ aws_security_group.SG-Wordpress.id ]
+  security_groups    = [ aws_security_group.SG-LoadBalance.id ]
   enable_cross_zone_load_balancing = true
   subnets         = var.subnet_public_ids
   enable_deletion_protection = false
@@ -83,6 +85,12 @@ resource "aws_lb_target_group" "TargetGroup-Wordpress" {
     interval            = 30
     matcher             = "200"
   }
+
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = "60"
+    enabled         = var.sticky_session
+  }
   tags = {
     Name = "Wordpress-ALB-TG"
     Environment = var.environment
@@ -102,6 +110,7 @@ resource "aws_lb_listener" "LBL-WebSite" {
   }
 
 }
+
 #use only without autoscaling
 /*
 resource "aws_lb_target_group_attachment" "front_end" {

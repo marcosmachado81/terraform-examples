@@ -15,7 +15,7 @@ sudo mkdir ${MOUNTPOINT}
 sudo mkdir /root/.aws
 sudo sh -c 'echo "[default]" > /root/.aws/credentials'
 sudo sh -c 'echo "aws_access_key_id = ${ACCSKEY}" >> /root/.aws/credentials'
-sudo sh -c 'echo "aws_access_key_id = ${SECRETACCSKEY}" >> /root/.aws/credentials'
+sudo sh -c 'echo "aws_secret_access_key = ${SECRETACCSKEY}" >> /root/.aws/credentials'
 
 sudo wget https://github.com/kahing/goofys/releases/download/${GOOFYSv}/goofys -O /bin/goofys
 sudo chmod +x /bin/goofys

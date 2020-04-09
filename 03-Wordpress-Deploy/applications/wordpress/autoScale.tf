@@ -10,8 +10,8 @@ resource "aws_launch_configuration" "LC-FrontEnd" {
   associate_public_ip_address = true
   user_data              = templatefile("${path.module}/as_deploy.tmpl",{
                           BUCKETADDRESS = var.wp_content_bucket_name,
-                          SECRETACCSKEY = var.s3_secret_access_key,
-                          ACCSKEY       = var.s3_access_key,
+                          SECRETACCSKEY = aws_iam_access_key.user_s3.secret, //var.s3_secret_access_key,
+                          ACCSKEY       = aws_iam_access_key.user_s3.id, //var.s3_access_key,
                           MOUNTPOINT    = var.wordpress_wp_content,
                           GOOFYSv       = "v0.23.1",
                           EFSID         = aws_efs_file_system.wordpress_code.id

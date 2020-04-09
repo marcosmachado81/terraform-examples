@@ -20,7 +20,7 @@ variable "wp_user_password" {}
 variable "wp_user_mail" {}
 
 variable "vpc_id" {}
-variable "ingress_ports" {}
+//variable "ingress_ports" {}
 
 
 variable "wp_content_bucket_name" {}
@@ -32,6 +32,8 @@ variable "bucket_prefix" {}
 variable "health_path" {}
 variable "wp_locale" {}
 variable "region" {}
+variable "sticky_session" {}
+//variable "ingress_ports_loadbalance" {}
 
 #AutoScaling variables
 variable "auto_scaling_min_size" {}

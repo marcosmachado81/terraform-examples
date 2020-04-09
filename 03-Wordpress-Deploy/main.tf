@@ -1,4 +1,6 @@
+/*
 
+*/
 locals {
   environment = terraform.workspace
 
@@ -46,8 +48,6 @@ locals {
 
   vpc_id                  = lookup(local.vpc_id_list,local.environment)
   dbname                  = "db_wordpress"
-  dbuser                  = "db_user_wordpress"
-  dbpassword              = "536e362c7cb3e1cde2a674637447fc06"
   bastion_instance_type   = "t2.micro"
   instance_type           = lookup(local.instance_type_list,local.environment)
   subnet_private_ids      = lookup(local.subnet_private_ids_list,local.environment)
@@ -60,11 +60,17 @@ locals {
 }
 
 module "core" {
-  source = "./infrastrucutre/core"
+  source = "./infrastructure/core"
+}
+
+module "security" {
+  source = "./infrastructure/security"
+  environment = local.environment
+
 }
 
 module "network" {
-  source                = "./infrastrucutre/network"
+  source                = "./infrastructure/network"
 
   moduleIdentification  = "Infra-Network"
   team                  = "Operations"
@@ -89,8 +95,8 @@ module "wordpress_database" {
   vpc_id                  = local.vpc_id
   all_subnet_cidr_blocks  = local.all_subnet_cidr_blocks
   dbname                  = local.dbname
-  dbuser                  = local.dbuser
-  dbpassword              = local.dbpassword
+  dbuser                  = module.security.dbuser
+  dbpassword              = module.security.dbpassword
   #wordpress_address       = module.wordpress.wordpress_alb
 
   engine                 = "mysql"
@@ -112,7 +118,7 @@ module "wordpress" {
   #Application variables
   vpc_id            = local.vpc_id
   subnet_public_ids = local.subnet_public_ids
-  ingress_ports     = [80,22,2049]
+  //ingress_ports     = [80,22,2049]
   #One instance is create by aws_instance just to configure the wordpress environment.
   #this instance will install and copy files to S3 and EFS mounts.
   #After that the instance will shutdown and terminate.
@@ -124,16 +130,16 @@ module "wordpress" {
   environment       = local.environment
   #depends_on = [ module.network, module.core ]
   dbname           = local.dbname
-  dbuser           = local.dbuser
-  dbpassword       = local.dbpassword
+  dbuser           = module.security.dbuser
+  dbpassword       = module.security.dbpassword
   dbhost           = module.wordpress_database.db_address
 
   wp_content_bucket_name   = "my-wordpress-uploads-10294"
   wordpress_wp_content     = "/var/www/wp-uploads"
 
   #wordpress user,password,admin e-mail and locale
-  wp_user_admin     = "admin"
-  wp_user_password  = "75622e9c6b10dee650fc5e8a9cae89b1"
+  wp_user_admin     = module.security.wpuser
+  wp_user_password  = module.security.wppassword
   wp_user_mail      = "teste@teste.gor"
   wp_locale         = "pt_BR"
 
@@ -141,6 +147,8 @@ module "wordpress" {
   load_balance_bucket_name = "loadbalance-staticwebsite-0394902"
   bucket_prefix            = "LB-Logs"
   health_path              = "/health.html"
+  sticky_session           = false
+  //ingress_ports_loadbalance = [ 80 ]
 
   #Auto Scaling variables
   auto_scaling_min_size         = 1

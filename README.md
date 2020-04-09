@@ -16,4 +16,9 @@ More complex environment using locals, workspaces and modules.
  - Use EFS for wordpress code files
  - Remote terraform state
 
-To access S3 bucket from instance needs create a programmatic access user with permission to access S3 bucket. After creates 2 variable s3_access_key and s3_secret_access_key inside variables.tf or create a file s3_access_credential.tf
+Before plan and apply:
+1. You must create variables in Systems Manager (SM Parameters) for database wordpress users (username and password). You need create based on your environment. For example, If I have testing workspace I create four variables:  
+/wordpress/**testing**/db_user    type string  
+/wordpress/**testing**/db_pass    type securestring  
+/wordpress/**testing**/wp_user    type string  
+/wordpress/**testing**/wp_pass    type securestring  
